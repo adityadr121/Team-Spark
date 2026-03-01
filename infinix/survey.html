@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HealthAssist – How Are You Actually Doing?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link href="https://clinicaltables.nlm.nih.gov/autocomplete-lhc-versions/19.2.4/autocomplete-lhc.min.css" rel="stylesheet"/>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://clinicaltables.nlm.nih.gov/autocomplete-lhc-versions/19.2.4/autocomplete-lhc.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0fdf9;
+      --card: #ffffff;
+      --card2: #f8fffe;
+      --border: rgba(0,0,0,0.08);
+      --teal: #0d9488;
+      --teal-dark: #0f766e;
+      --teal-glow: rgba(13,148,136,0.10);
+      --amber: #d97706;
+      --rose: #e11d48;
+      --purple: #7c3aed;
+      --navy: #0f172a;
+      --muted: #64748b;
+      --text: #334155;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── AMBIENT BLOBS ── */
+    .blob { position: fixed; border-radius: 50%; filter: blur(110px); pointer-events: none; z-index: 0; }
+    .blob-1 { width: 500px; height: 500px; background: #99f6e4; top: -180px; right: -120px; opacity: 0.3; }
+    .blob-2 { width: 400px; height: 400px; background: #c7d2fe; bottom: -80px; left: -80px; opacity: 0.25; }
+    .blob-3 { width: 280px; height: 280px; background: #fda4af; top: 45%; left: 35%; opacity: 0.15; }
+
+    /* ── FLOATING MEDICAL ICONS (background decor) ── */
+    .med-float {
+      position: fixed;
+      font-size: 28px;
+      opacity: 0.07;
+      pointer-events: none;
+      z-index: 0;
+      animation: floatMed linear infinite;
+    }
+    .med-float:nth-child(1)  { top: 8%;  left: 3%;  font-size: 36px; animation-duration: 9s;  animation-delay: 0s; }
+    .med-float:nth-child(2)  { top: 20%; right: 4%; font-size: 28px; animation-duration: 11s; animation-delay: 1s; }
+    .med-float:nth-child(3)  { top: 55%; left: 2%;  font-size: 32px; animation-duration: 8s;  animation-delay: 2s; }
+    .med-float:nth-child(4)  { top: 70%; right: 3%; font-size: 24px; animation-duration: 13s; animation-delay: 0.5s; }
+    .med-float:nth-child(5)  { top: 40%; left: 5%;  font-size: 22px; animation-duration: 10s; animation-delay: 3s; }
+    .med-float:nth-child(6)  { top: 85%; left: 6%;  font-size: 30px; animation-duration: 12s; animation-delay: 1.5s; }
+    .med-float:nth-child(7)  { top: 15%; right: 8%; font-size: 26px; animation-duration: 14s; animation-delay: 2.5s; }
+
+    @keyframes floatMed {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33%  { transform: translateY(-18px) rotate(5deg); }
+      66%  { transform: translateY(10px) rotate(-5deg); }
+    }
+
+    /* ── ECG BANNER ── */
+    .ecg-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      z-index: 0;
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .ecg-banner svg { width: 100%; height: 100%; }
+    .ecg-line {
+      fill: none;
+      stroke: #0d9488;
+      stroke-width: 2;
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      animation: drawECGBanner 3s 1s ease forwards, pulseECGBanner 3s 4.5s infinite;
+    }
+    @keyframes drawECGBanner { to { stroke-dashoffset: 0; } }
+    @keyframes pulseECGBanner {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 50px 24px 32px;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .brand-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(13,148,136,0.08);
+      border: 1px solid rgba(13,148,136,0.2);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; color: var(--teal);
+      margin-bottom: 18px; letter-spacing: 0.5px;
+    }
+
+    .header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 4.5vw, 48px);
+      font-weight: 800; color: var(--navy);
+      line-height: 1.1; margin-bottom: 12px;
+    }
+    .header h1 em { font-style: italic; color: var(--teal); }
+    .header p { color: var(--muted); font-size: 15px; max-width: 500px; margin: 0 auto; line-height: 1.7; }
+
+    /* ── STEPS BAR ── */
+    .steps-bar {
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 24px 36px; position: relative; z-index: 10;
+      animation: fadeDown 0.7s 0.1s ease both;
+    }
+    .step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .step-circle {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--card);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+      color: var(--muted); transition: all 0.3s ease;
+    }
+    .step-circle.active { border-color: var(--teal); background: var(--teal-glow); color: var(--teal); box-shadow: 0 0 16px rgba(13,148,136,0.25); }
+    .step-circle.done   { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .step-label { font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+    .step-label.active { color: var(--teal); }
+    .step-line { width: 70px; height: 2px; background: var(--border); margin: 0 4px 24px; flex-shrink: 0; transition: background 0.3s; }
+    .step-line.done { background: var(--teal); }
+
+    /* ── CONTAINER ── */
+    .container { max-width: 740px; margin: 0 auto; padding: 0 24px 100px; position: relative; z-index: 10; }
+
+    /* ── BUCKET SECTIONS ── */
+    .bucket-section {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 36px; margin-bottom: 28px;
+      display: none; animation: fadeUp 0.5s ease both;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+    }
+    .bucket-section.active { display: block; }
+
+    /* Bucket section header with SVG icon */
+    .bucket-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; }
+    .bucket-icon-wrap {
+      width: 56px; height: 56px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .bucket-icon-wrap.physical { background: rgba(217,119,6,0.1); }
+    .bucket-icon-wrap.emotional { background: rgba(124,58,237,0.1); }
+    .bucket-icon-wrap.external  { background: rgba(225,29,72,0.1); }
+
+    .bucket-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px; border-radius: 999px;
+      font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .bucket-tag.physical  { background: rgba(217,119,6,0.08);  color: var(--amber);  border: 1px solid rgba(217,119,6,0.18); }
+    .bucket-tag.emotional { background: rgba(124,58,237,0.08); color: var(--purple); border: 1px solid rgba(124,58,237,0.18); }
+    .bucket-tag.external  { background: rgba(225,29,72,0.08);  color: var(--rose);   border: 1px solid rgba(225,29,72,0.18); }
+
+    .bucket-section h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .bucket-section .desc { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+    /* ── QUESTIONS ── */
+    .question { margin-bottom: 26px; }
+    .question label { display: block; font-size: 14px; font-weight: 500; color: var(--navy); margin-bottom: 12px; font-family: 'Syne', sans-serif; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .chip {
+      padding: 8px 16px; border-radius: 999px;
+      border: 1.5px solid var(--border); background: #f8fafc;
+      color: var(--text); font-size: 13px; cursor: pointer;
+      transition: all 0.2s ease; user-select: none;
+    }
+    .chip:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+    .chip.selected-amber  { border-color: var(--amber);  background: rgba(217,119,6,0.07);  color: var(--amber); }
+    .chip.selected-purple { border-color: var(--purple); background: rgba(124,58,237,0.07); color: var(--purple); }
+    .chip.selected-rose   { border-color: var(--rose);   background: rgba(225,29,72,0.07);  color: var(--rose); }
+
+    /* Slider */
+    .range-labels { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 10px; font-family: 'Syne', sans-serif; }
+    input[type="range"] {
+      width: 100%; height: 6px; -webkit-appearance: none;
+      border-radius: 999px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
+      border-radius: 50%; background: #fff;
+      border: 2px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer;
+    }
+    .slider-value { text-align: center; font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-top: 10px; }
+    .slider-value.amber  { color: var(--amber); }
+    .slider-value.purple { color: var(--purple); }
+    .slider-value.rose   { color: var(--rose); }
+
+    /* Mood */
+    .mood-row { display: flex; gap: 9px; flex-wrap: wrap; }
+    .mood-btn {
+      flex: 1; min-width: 58px; padding: 12px 6px;
+      border-radius: 14px; border: 1.5px solid var(--border);
+      background: #f8fafc; cursor: pointer; text-align: center; font-size: 22px;
+      transition: all 0.2s ease;
+    }
+    .mood-btn span { display: block; font-size: 9.5px; margin-top: 5px; font-family: 'Syne', sans-serif; color: var(--muted); letter-spacing: 0.3px; }
+    .mood-btn:hover, .mood-btn.selected { border-color: var(--purple); background: rgba(124,58,237,0.07); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+
+    /* Sleep */
+    .sleep-options { display: flex; gap: 9px; flex-wrap: wrap; }
+    .sleep-opt { padding: 9px 18px; border-radius: 10px; border: 1.5px solid var(--border); background: #f8fafc; font-family: 'Syne', sans-serif; font-size: 12.5px; color: var(--text); cursor: pointer; transition: all 0.2s; }
+    .sleep-opt:hover, .sleep-opt.selected { border-color: var(--purple); background: rgba(124,58,237,0.07); color: var(--purple); }
+
+    /* Textarea */
+    textarea {
+      width: 100%; background: #f8fafc;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 13px 16px; font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--navy); resize: none; outline: none;
+      transition: border-color 0.2s; line-height: 1.7;
+    }
+    textarea:focus { border-color: var(--rose); }
+    textarea::placeholder { color: #cbd5e1; }
+
+    /* ── NAV BUTTONS ── */
+    .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; gap: 12px; }
+    .btn { padding: 12px 28px; border-radius: 12px; font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; letter-spacing: 0.4px; }
+    .btn-ghost { background: transparent; border: 1.5px solid #cbd5e1; color: var(--muted); }
+    .btn-ghost:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-primary { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: #fff; box-shadow: 0 4px 16px rgba(13,148,136,0.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(13,148,136,0.35); }
+    .btn-submit { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; box-shadow: 0 4px 16px rgba(99,102,241,0.3); padding: 13px 38px; font-size: 14px; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,0.4); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    /* ── AI LOADING ── */
+    #aiLoading {
+      display: none; text-align: center; padding: 60px 24px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .ai-loader-wrap { position: relative; display: inline-block; margin-bottom: 24px; }
+    .ai-brain { font-size: 64px; animation: brainPulse 1.5s ease-in-out infinite; }
+    @keyframes brainPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(13,148,136,0)); }
+      50% { transform: scale(1.12); filter: drop-shadow(0 0 16px rgba(13,148,136,0.5)); }
+    }
+    .ai-rings {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px; height: 100px;
+    }
+    .ai-ring {
+      position: absolute; border-radius: 50%;
+      border: 2px solid rgba(13,148,136,0.2);
+      animation: expandRing 2s ease-out infinite;
+    }
+    .ai-ring:nth-child(1) { width: 80px; height: 80px; top: 10px; left: 10px; animation-delay: 0s; }
+    .ai-ring:nth-child(2) { width: 100px; height: 100px; top: 0; left: 0; animation-delay: 0.5s; }
+    .ai-ring:nth-child(3) { width: 120px; height: 120px; top: -10px; left: -10px; animation-delay: 1s; }
+    @keyframes expandRing {
+      0%   { transform: scale(0.7); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    .ai-loading-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .ai-loading-sub { color: var(--muted); font-size: 14px; }
+    .ai-dots span { display: inline-block; animation: dotBounce 1.2s infinite; }
+    .ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotBounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+
+    /* ── RESULT CARD ── */
+    #resultSection { display: none; }
+    .result-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 44px; text-align: center;
+      animation: fadeUp 0.6s ease both;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.07);
+    }
+    .result-emoji { font-size: 60px; margin-bottom: 16px; }
+    .result-badge {
+      display: inline-block; padding: 6px 18px; border-radius: 999px;
+      font-family: 'Syne', sans-serif; font-size: 11.5px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .badge-emergency { background: rgba(225,29,72,0.08);   color: var(--rose);   border: 1px solid rgba(225,29,72,0.2); }
+    .badge-stress    { background: rgba(124,58,237,0.08);  color: var(--purple); border: 1px solid rgba(124,58,237,0.2); }
+    .badge-wellness  { background: rgba(13,148,136,0.08);  color: var(--teal);   border: 1px solid rgba(13,148,136,0.2); }
+    .result-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+    .result-desc { font-size: 14.5px; color: var(--text); line-height: 1.8; max-width: 500px; margin: 0 auto 24px; }
+
+    /* AI result box */
+    .ai-result-box {
+      background: linear-gradient(135deg, #f0fdf9, #eff6ff);
+      border: 1.5px solid rgba(13,148,136,0.2);
+      border-radius: 16px; padding: 24px; text-align: left; margin: 20px 0;
+    }
+    .ai-result-label {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--teal);
+      margin-bottom: 12px;
+    }
+    .ai-result-text { font-size: 14.5px; color: var(--navy); line-height: 1.8; white-space: pre-wrap; }
+
+    .bucket-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0; }
+    .summary-box { padding: 16px 12px; border-radius: 14px; border: 1px solid var(--border); background: #f8fafc; text-align: center; }
+    .summary-box .sicon { font-size: 24px; margin-bottom: 6px; }
+    .summary-box .slabel { font-family: 'Syne', sans-serif; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .summary-box .sval  { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--navy); }
+
+    .result-tips { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-top: 20px; }
+    .tip { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6; }
+    .tip-icon { font-size: 20px; flex-shrink: 0; }
+
+    /* ── MEDICAL GRAPHIC STRIP (between header & steps) ── */
+    .med-strip {
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px; padding: 0 24px 28px;
+      position: relative; z-index: 10;
+      animation: fadeDown 0.7s 0.15s ease both;
+      flex-wrap: wrap;
+    }
+    .med-stat-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 999px; padding: 8px 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      animation: floatChip 5s ease-in-out infinite;
+    }
+    .med-stat-chip:nth-child(2) { animation-delay: 1s; }
+    .med-stat-chip:nth-child(3) { animation-delay: 2s; }
+    .med-stat-chip:nth-child(4) { animation-delay: 3s; }
+    @keyframes floatChip {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .med-stat-chip .chip-icon { font-size: 18px; }
+    .med-stat-chip .chip-info { display: flex; flex-direction: column; }
+    .med-stat-chip .chip-label { font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
+    .med-stat-chip .chip-val   { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
+      animation: livePulse 1.8s infinite;
+    }
+    @keyframes livePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+      70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+
+    /* ECG top strip */
+    .ecg-top {
+      position: relative; z-index: 10;
+      padding: 0 24px 6px; text-align: center;
+      animation: fadeDown 0.7s 0.05s ease both;
+    }
+    .ecg-top svg { width: min(600px, 90%); height: 44px; }
+    .ecg-top-path {
+      fill: none; stroke: var(--teal); stroke-width: 2;
+      stroke-dasharray: 700; stroke-dashoffset: 700;
+      animation: drawECGTop 2s 0.5s ease forwards, pulseECGTop 3s 3s infinite;
+      opacity: 0.4;
+    }
+    @keyframes drawECGTop { to { stroke-dashoffset: 0; } }
+    @keyframes pulseECGTop {
+      0%,100% { opacity: 0.4; }
+      50% { opacity: 0.75; filter: drop-shadow(0 0 4px rgba(13,148,136,0.5)); }
+    }
+
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── NLM CONDITION SEARCH ── */
+    .condition-search-wrap {
+      position: relative;
+    }
+    .condition-search-wrap input#condition {
+      width: 100%;
+      padding: 12px 44px 12px 42px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--navy);
+      background: #f8fafc;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .condition-search-wrap input#condition:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(217,119,6,0.1);
+      background: #fff;
+    }
+    .condition-search-wrap input#condition::placeholder { color: #cbd5e1; }
+    .condition-icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      pointer-events: none;
+    }
+    .condition-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      min-height: 10px;
+    }
+    .condition-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(217,119,6,0.08);
+      border: 1px solid rgba(217,119,6,0.2);
+      border-radius: 999px;
+      font-size: 12.5px;
+      color: var(--amber);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+    }
+    .condition-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--amber);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.7;
+    }
+    .condition-tag button:hover { opacity: 1; }
+    /* Override autocomplete-lhc styles to match our theme */
+    .autocomp_selected, .search_field_with_ac {
+      font-family: 'DM Sans', sans-serif !important;
+    }
+    #completionOptions {
+      border-radius: 12px !important;
+      border: 1.5px solid var(--border) !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+      font-family: 'DM Sans', sans-serif !important;
+      font-size: 14px !important;
+      z-index: 9999 !important;
+    }
+
+    @media (max-width: 540px) {
+      .bucket-section { padding: 22px 18px; }
+      .bucket-summary { grid-template-columns: 1fr; }
+      .result-card { padding: 28px 18px; }
+      .med-strip { gap: 8px; }
+      .med-stat-chip { padding: 7px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- Floating medical background icons -->
+<div class="med-float">🩺</div>
+<div class="med-float">💊</div>
+<div class="med-float">🧬</div>
+<div class="med-float">❤️</div>
+<div class="med-float">🔬</div>
+<div class="med-float">🩻</div>
+<div class="med-float">💉</div>
+
+<!-- ECG bottom banner -->
+<div class="ecg-banner">
+  <svg viewBox="0 0 1200 60" preserveAspectRatio="none">
+    <path class="ecg-line" d="M0,30 L80,30 L100,30 L110,8 L118,52 L128,2 L136,56 L145,30 L200,30 L280,30 L300,30 L310,10 L318,50 L328,4 L336,54 L345,30 L400,30 L480,30 L500,30 L510,8 L518,52 L528,2 L536,56 L545,30 L600,30 L680,30 L700,30 L710,10 L718,50 L728,4 L736,54 L745,30 L800,30 L880,30 L900,30 L910,8 L918,52 L928,2 L936,56 L945,30 L1000,30 L1080,30 L1100,30 L1110,10 L1118,50 L1128,4 L1136,54 L1145,30 L1200,30"/>
+  </svg>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="brand-pill">🏥 HealthAssist · AI-Powered Daily Check-In</div>
+  <h1>How are you <em>actually</em> doing?</h1>
+  <p>Tell us about your body, mind & world — our AI analyses all three together for a smarter, more accurate diagnosis.</p>
+</div>
+
+<!-- ECG TOP STRIP -->
+<div class="ecg-top">
+  <svg viewBox="0 0 600 44" preserveAspectRatio="none">
+    <path class="ecg-top-path" d="M0,22 L60,22 L75,22 L83,6 L89,38 L97,2 L103,42 L110,22 L160,22 L220,22 L235,22 L243,8 L249,36 L257,4 L263,40 L270,22 L320,22 L380,22 L395,22 L403,6 L409,38 L417,2 L423,42 L430,22 L480,22 L540,22 L555,22 L563,8 L569,36 L577,4 L583,40 L590,22 L600,22"/>
+  </svg>
+</div>
+
+<!-- LIVE MEDICAL STATS STRIP -->
+<div class="med-strip">
+  <div class="med-stat-chip">
+    <div class="live-dot"></div>
+    <div class="chip-icon">❤️</div>
+    <div class="chip-info">
+      <span class="chip-label">Heart Rate</span>
+      <span class="chip-val">72 bpm</span>
+    </div>
+  </div>
+  <div class="med-stat-chip">
+    <div class="chip-icon">🩸</div>
+    <div class="chip-info">
+      <span class="chip-label">Blood Pressure</span>
+      <span class="chip-val">120/80</span>
+    </div>
+  </div>
+  <div class="med-stat-chip">
+    <div class="chip-icon">🌡️</div>
+    <div class="chip-info">
+      <span class="chip-label">Temperature</span>
+      <span class="chip-val">98.6°F</span>
+    </div>
+  </div>
+  <div class="med-stat-chip">
+    <div class="chip-icon">🧠</div>
+    <div class="chip-info">
+      <span class="chip-label">AI Status</span>
+      <span class="chip-val" style="color:var(--teal)">Ready</span>
+    </div>
+  </div>
+</div>
+
+<!-- STEPS BAR -->
+<div class="steps-bar" id="stepsBar">
+  <div class="step-item">
+    <div class="step-circle active" id="sc1">A</div>
+    <div class="step-label active" id="sl1">Body</div>
+  </div>
+  <div class="step-line" id="line1"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc2">B</div>
+    <div class="step-label" id="sl2">Mind</div>
+  </div>
+  <div class="step-line" id="line2"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc3">C</div>
+    <div class="step-label" id="sl3">World</div>
+  </div>
+  <div class="step-line" id="line3"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc4">✦</div>
+    <div class="step-label" id="sl4">AI Result</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══ BUCKET A: PHYSICAL ══ -->
+  <div class="bucket-section active" id="sectionA">
+    <div class="bucket-header">
+      <div class="bucket-icon-wrap physical">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="12" stroke="#d97706" stroke-width="2"/>
+          <path d="M14 8v12M8 14h12" stroke="#d97706" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="bucket-tag physical">🩺 Bucket A · The Body</div>
+        <h2>What's your body telling you?</h2>
+        <p class="desc">Select all physical symptoms you're experiencing now or in the last 24 hours.</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>Physical Symptoms (select all that apply)</label>
+      <div class="chips" id="symptomChips">
+        <div class="chip" onclick="toggleChip(this,'amber')">🤒 Fever</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😮‍💨 Cough</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😣 Headache</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">🤢 Nausea</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😖 Stomach Ache</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">💔 Chest Pain</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">🦴 Body Pain</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😤 Breathing Difficulty</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😵 Dizziness</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">🤧 Cold / Runny Nose</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">💪 Muscle Weakness</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">😴 Extreme Fatigue</div>
+        <div class="chip" onclick="toggleChip(this,'amber')">None of the above</div>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>Search for a Medical Condition <span style="color:var(--muted);font-weight:400;font-size:12px;">(powered by NLM Clinical Tables)</span></label>
+      <div class="condition-search-wrap">
+        <span class="condition-icon">🔍</span>
+        <input type="text" id="condition" placeholder="Type a condition e.g. Diabetes, Hypertension, Asthma…" autocomplete="off"/>
+      </div>
+      <div class="condition-tags" id="conditionTags"></div>
+    </div>
+
+    <div class="question">
+      <label>Pain intensity — 1 is mild, 10 is severe</label>
+      <div class="range-labels"><span>No Pain (1)</span><span>Severe (10)</span></div>
+      <input type="range" id="painLevel" min="1" max="10" value="1" oninput="updateSlider('painLevel','painVal','amber')"/>
+      <div class="slider-value amber" id="painVal">1</div>
+    </div>
+
+    <div class="nav-row">
+      <div></div>
+      <button class="btn btn-primary" onclick="goTo('B')">Next: Your Mind →</button>
+    </div>
+  </div>
+
+  <!-- ══ BUCKET B: EMOTIONAL ══ -->
+  <div class="bucket-section" id="sectionB">
+    <div class="bucket-header">
+      <div class="bucket-icon-wrap emotional">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M14 4C9 4 5 8 5 13c0 6 9 11 9 11s9-5 9-11c0-5-4-9-9-9z" stroke="#7c3aed" stroke-width="2" fill="none"/>
+          <path d="M10 13c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="bucket-tag emotional">🧠 Bucket B · The Mind</div>
+        <h2>How's your inner world?</h2>
+        <p class="desc">Mental state influences physical health more than most people realise.</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>How's your mood right now?</label>
+      <div class="mood-row">
+        <div class="mood-btn" onclick="selectMood(this)">😄<span>Great</span></div>
+        <div class="mood-btn" onclick="selectMood(this)">🙂<span>Okay</span></div>
+        <div class="mood-btn" onclick="selectMood(this)">😐<span>Meh</span></div>
+        <div class="mood-btn" onclick="selectMood(this)">😟<span>Low</span></div>
+        <div class="mood-btn" onclick="selectMood(this)">😰<span>Anxious</span></div>
+        <div class="mood-btn" onclick="selectMood(this)">😤<span>Frustrated</span></div>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>Stress Level — 1 is calm, 10 is overwhelmed</label>
+      <div class="range-labels"><span>Very Calm (1)</span><span>Overwhelmed (10)</span></div>
+      <input type="range" id="stressLevel" min="1" max="10" value="3" oninput="updateSlider('stressLevel','stressVal','purple')"/>
+      <div class="slider-value purple" id="stressVal">3</div>
+    </div>
+
+    <div class="question">
+      <label>Sleep Quality Last Night</label>
+      <div class="sleep-options">
+        <div class="sleep-opt" onclick="selectOpt(this,'.sleep-opt')">😴 Deep & refreshing</div>
+        <div class="sleep-opt" onclick="selectOpt(this,'.sleep-opt')">🛌 Average</div>
+        <div class="sleep-opt" onclick="selectOpt(this,'.sleep-opt')">😵 Restless / broken</div>
+        <div class="sleep-opt" onclick="selectOpt(this,'.sleep-opt')">☀️ Barely slept</div>
+        <div class="sleep-opt" onclick="selectOpt(this,'.sleep-opt')">🌙 No sleep at all</div>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goTo('A')">← Back</button>
+      <button class="btn btn-primary" onclick="goTo('C')">Next: Your World →</button>
+    </div>
+  </div>
+
+  <!-- ══ BUCKET C: EXTERNAL ══ -->
+  <div class="bucket-section" id="sectionC">
+    <div class="bucket-header">
+      <div class="bucket-icon-wrap external">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="10" stroke="#e11d48" stroke-width="2"/>
+          <circle cx="14" cy="14" r="5"  stroke="#e11d48" stroke-width="2"/>
+          <circle cx="14" cy="14" r="1.5" fill="#e11d48"/>
+        </svg>
+      </div>
+      <div>
+        <div class="bucket-tag external">🌍 Bucket C · The Environment</div>
+        <h2>What's going on around you?</h2>
+        <p class="desc">Environment — work pressure, weather, life events — can trigger or worsen symptoms.</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>Current Life Stressors (select all that apply)</label>
+      <div class="chips">
+        <div class="chip" onclick="toggleChip(this,'rose')">📚 Exams / Deadlines</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">💼 Heavy Workload</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">💸 Financial Pressure</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">💔 Relationship Issues</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">🏠 Family Conflict</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">🌤️ Weather Change (Nagpur)</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">😷 Exposure to sick people</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">🚶 Long commute / travel</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">📱 Screen overload</div>
+        <div class="chip" onclick="toggleChip(this,'rose')">None right now</div>
+      </div>
+    </div>
+
+    <div class="question">
+      <label>Workload / Busyness Level — 1 is relaxed, 10 is swamped</label>
+      <div class="range-labels"><span>Relaxed (1)</span><span>Swamped (10)</span></div>
+      <input type="range" id="workloadLevel" min="1" max="10" value="4" oninput="updateSlider('workloadLevel','workloadVal','rose')"/>
+      <div class="slider-value rose" id="workloadVal">4</div>
+    </div>
+
+    <div class="question">
+      <label>Anything else you'd like to tell us?</label>
+      <textarea rows="3" id="extraNotes" placeholder="e.g. I've had a very stressful week with exams and haven't eaten properly..."></textarea>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goTo('B')">← Back</button>
+      <button class="btn btn-submit" id="analyseBtn" onclick="submitSurvey()">✦ Analyse with AI</button>
+    </div>
+  </div>
+
+  <!-- ══ AI LOADING ══ -->
+  <div id="aiLoading">
+    <div class="ai-loader-wrap">
+      <div class="ai-rings">
+        <div class="ai-ring"></div>
+        <div class="ai-ring"></div>
+        <div class="ai-ring"></div>
+      </div>
+      <div class="ai-brain">🧠</div>
+    </div>
+    <div class="ai-loading-title">AI is analysing your health<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    <p class="ai-loading-sub">Cross-referencing your Body, Mind & Environment data</p>
+  </div>
+
+  <!-- ══ RESULT ══ -->
+  <div id="resultSection">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🔍</div>
+      <div class="result-badge" id="resultBadge">Analysing…</div>
+      <div class="result-title" id="resultTitle">Your Health Snapshot</div>
+      <p class="result-desc" id="resultDesc"></p>
+
+      <div class="bucket-summary">
+        <div class="summary-box">
+          <div class="sicon">🩺</div>
+          <div class="slabel">Body Score</div>
+          <div class="sval" id="bodyScore">–</div>
+        </div>
+        <div class="summary-box">
+          <div class="sicon">🧠</div>
+          <div class="slabel">Mind Score</div>
+          <div class="sval" id="mindScore">–</div>
+        </div>
+        <div class="summary-box">
+          <div class="sicon">🌍</div>
+          <div class="slabel">Environment</div>
+          <div class="sval" id="envScore">–</div>
+        </div>
+      </div>
+
+      <!-- AI Response Box -->
+      <div class="ai-result-box" id="aiResultBox" style="display:none;">
+        <div class="ai-result-label">
+          <span>🤖</span> AI Analysis
+        </div>
+        <div class="ai-result-text" id="aiResultText"></div>
+      </div>
+
+      <div class="result-tips" id="resultTips"></div>
+
+      <div class="nav-row" style="justify-content:center; margin-top:28px;">
+        <button class="btn btn-primary" onclick="resetSurvey()">↩ New Check-In</button>
+<button class="btn btn-primary" onclick="gotodashboard()">veiw dashboard</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  let selectedMood = 'Not specified';
+  let selectedSleep = 'Not specified';
+  
+
+  function gotodashboard(){
+        setTimeout(() => {
+            window.location.href = '\dasboard.html';
+          }, 700); 
+       }
+  /* ── Helpers ── */
+  function toggleChip(el, color) { el.classList.toggle('selected-' + color); }
+
+  function selectMood(el) {
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMood = el.querySelector('span').textContent.trim();
+  }
+
+  function selectOpt(el, selector) {
+    document.querySelectorAll(selector).forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedSleep = el.textContent.trim();
+  }
+
+  function updateSlider(id, valId, color) {
+    const val = document.getElementById(id).value;
+    document.getElementById(valId).textContent = val;
+    const pct = ((val - 1) / 9 * 100).toFixed(0);
+    const map = { amber: '#d97706', purple: '#7c3aed', rose: '#e11d48' };
+    document.getElementById(id).style.background =
+      `linear-gradient(to right, ${map[color]} 0%, ${map[color]} ${pct}%, #e2e8f0 ${pct}%)`;
+  }
+
+  /* ── Navigation ── */
+  function goTo(bucket) {
+    ['A','B','C'].forEach(b => document.getElementById('section'+b).classList.remove('active'));
+    document.getElementById('section'+bucket).classList.add('active');
+    updateSteps(bucket);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateSteps(current) {
+    const order = ['A','B','C'];
+    const idx = order.indexOf(current);
+    for (let i = 1; i <= 3; i++) {
+      const sc = document.getElementById('sc'+i);
+      const sl = document.getElementById('sl'+i);
+      if (i - 1 < idx) {
+        sc.className = 'step-circle done'; sl.className = 'step-label';
+        sc.textContent = '✓';
+        if (i < 3) document.getElementById('line'+i).classList.add('done');
+      } else if (i - 1 === idx) {
+        sc.className = 'step-circle active'; sl.className = 'step-label active';
+        sc.textContent = ['A','B','C'][i-1];
+        if (i > 1) document.getElementById('line'+(i-1)).classList.remove('done');
+      } else {
+        sc.className = 'step-circle'; sl.className = 'step-label';
+        sc.textContent = ['A','B','C'][i-1];
+      }
+    }
+  }
+
+  /* ── Submit ── */
+  async function submitSurvey() {
+    const btn = document.getElementById('analyseBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Analysing…';
+
+    const pain     = parseInt(document.getElementById('painLevel').value);
+    const stress   = parseInt(document.getElementById('stressLevel').value);
+    const workload = parseInt(document.getElementById('workloadLevel').value);
+    const notes    = document.getElementById('extraNotes').value.trim();
+
+    const symptoms  = [...document.querySelectorAll('#symptomChips .selected-amber')].map(e => e.textContent.trim());
+    const stressors = [...document.querySelectorAll('.chip.selected-rose')].map(e => e.textContent.trim());
+
+    // Hide survey, show loading
+    ['A','B','C'].forEach(b => document.getElementById('section'+b).classList.remove('active'));
+    document.getElementById('stepsBar').style.display = 'none';
+    document.getElementById('aiLoading').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Fallback triage result
+    const hasChestPain   = symptoms.some(s => s.includes('Chest Pain'));
+    const hasStomachAche = symptoms.some(s => s.includes('Stomach Ache'));
+    const hasBreathing   = symptoms.some(s => s.includes('Breathing'));
+    const noPhysical     = symptoms.length === 0 || (symptoms.length === 1 && symptoms[0].includes('None'));
+
+    let fallback = {};
+    if (hasChestPain && stress <= 4) {
+      fallback = { emoji:'🚨', badge:'badge-emergency', badgeText:'⚠️ High Priority – See a Doctor', title:'Possible Medical Emergency', desc:'Chest pain with low stress is a serious warning sign requiring immediate medical attention.', tips:[{icon:'📞',text:'Call emergency services or go to the ER immediately.'},{icon:'🚫',text:'Avoid physical exertion until evaluated by a doctor.'},{icon:'📝',text:'Note exact onset time and location of pain for your doctor.'}] };
+    } else if (hasStomachAche && stress >= 6) {
+      fallback = { emoji:'😮‍💨', badge:'badge-stress', badgeText:'🧠 Stress-Related Pattern', title:'Stress-Ache Detected', desc:'Your stomach ache combined with high stress suggests a psychosomatic response — very common and manageable.', tips:[{icon:'🫁',text:'Try 4-7-8 breathing: inhale 4s, hold 7s, exhale 8s.'},{icon:'💊',text:'A mild antacid may help alongside stress management.'},{icon:'🍵',text:'Warm ginger tea, no caffeine or spicy food.'}] };
+    } else if (hasBreathing && stress >= 7) {
+      fallback = { emoji:'😰', badge:'badge-stress', badgeText:'🧠 Anxiety Pattern', title:'Possible Anxiety / Panic Response', desc:'Breathing difficulty with very high stress may indicate an anxiety episode.', tips:[{icon:'🫁',text:'Breathe slowly. Ground yourself: 5 things you see, 4 you feel, 3 you hear.'},{icon:'💧',text:'Drink cold water, sit in a quiet place.'},{icon:'📞',text:'If breathing difficulty persists 10+ minutes, call emergency services.'}] };
+    } else if (noPhysical && stress <= 3 && workload <= 3) {
+      fallback = { emoji:'✅', badge:'badge-wellness', badgeText:'💚 You\'re Doing Well', title:'Great Check-In!', desc:'All three buckets are balanced — body, mind, and environment all look healthy.', tips:[{icon:'🏃',text:'Keep up regular exercise, even a 20-min walk.'},{icon:'💤',text:'Maintain your good sleep routine.'},{icon:'🥗',text:'Stay hydrated and eat balanced meals.'}] };
+    } else if (stress >= 7 && workload >= 7) {
+      fallback = { emoji:'🔥', badge:'badge-stress', badgeText:'⚡ High Burnout Risk', title:'Burnout Warning Signs', desc:'High stress and heavy workload are stacking up — your body and mind need rest.', tips:[{icon:'🛑',text:'Take a genuine break — 30 minutes away from screens.'},{icon:'📋',text:'Write your top 3 priorities and drop everything else today.'},{icon:'💤',text:'Prioritise sleep tonight above all else.'}] };
+    } else {
+      fallback = { emoji:'🩺', badge:'badge-wellness', badgeText:'📊 Moderate Attention', title:'Some Areas to Watch', desc:'A mixed picture — a few areas worth monitoring today.', tips:[{icon:'💧',text:'Drink at least 8 glasses of water today.'},{icon:'😴',text:'Aim for 7–9 hours of sleep tonight.'},{icon:'🚶',text:'A short walk outdoors can reset body and mind.'}] };
+    }
+
+    // ── CLAUDE AI API CALL ──
+    let aiText = null;
+    try {
+      const prompt = `You are a compassionate and accurate medical health assistant AI. A user has completed a Three-Bucket Health Check-In. Analyse their data and provide a personalised, medically-informed health summary.
+
+USER DATA:
+🩺 BUCKET A (Body):
+- Symptoms: ${symptoms.length ? symptoms.join(', ') : 'None reported'}
+- Known/Searched Medical Conditions: ${selectedConditions.length ? selectedConditions.join(', ') : 'None specified'}
+- Pain intensity: ${pain}/10
+
+🧠 BUCKET B (Mind):
+- Mood: ${selectedMood}
+- Stress level: ${stress}/10
+- Sleep quality: ${selectedSleep}
+
+🌍 BUCKET C (Environment):
+- Stressors: ${stressors.length ? stressors.join(', ') : 'None reported'}
+- Workload level: ${workload}/10
+- Additional notes: ${notes || 'None'}
+
+Please provide your response in TWO parts:
+
+PART 1 — JSON SCORES (on the very first line, nothing else):
+{"bodyScore": <0-10>, "mindScore": <0-10>, "envScore": <0-10>}
+
+Rules for scores:
+- bodyScore: 0 = perfectly healthy body, 10 = severe physical condition. Base it on symptom count, type severity, and pain level.
+- mindScore: 0 = calm and well-rested, 10 = severely stressed/anxious. Base it on mood, stress level, and sleep quality.
+- envScore: 0 = calm environment, 10 = overwhelming external pressure. Base it on stressor count and workload.
+
+PART 2 — ANALYSIS (after the JSON line):
+1. A brief, accurate assessment of what these combined symptoms and factors suggest (2-3 sentences).
+2. Whether this pattern is more likely physical, stress-related, or a combination.
+3. 2-3 specific, actionable recommendations tailored to this person's unique combination of symptoms and stressors.
+4. A clear urgency level: LOW / MODERATE / HIGH — and what it means.
+
+Keep your tone warm, professional, and easy to understand. Do NOT provide a diagnosis. Always recommend seeing a doctor for serious symptoms.`;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        aiText = data.content?.map(c => c.text || '').join('\n').trim();
+      }
+    } catch (err) {
+      console.warn('AI API error:', err);
+    }
+
+    // ── SHOW RESULT ──
+    setTimeout(() => {
+      document.getElementById('aiLoading').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'block';
+      document.getElementById('sc4').className = 'step-circle done';
+
+      document.getElementById('resultEmoji').textContent  = fallback.emoji;
+      document.getElementById('resultBadge').className    = 'result-badge ' + fallback.badge;
+      document.getElementById('resultBadge').textContent  = fallback.badgeText;
+      document.getElementById('resultTitle').textContent  = fallback.title;
+      document.getElementById('resultDesc').textContent   = fallback.desc;
+
+      // Parse AI scores from first line of response
+      let aiBodyScore = null, aiMindScore = null, aiEnvScore = null;
+      let aiAnalysisText = aiText;
+      if (aiText) {
+        const firstLine = aiText.split('\n')[0].trim();
+        try {
+          const parsed = JSON.parse(firstLine);
+          aiBodyScore = parsed.bodyScore;
+          aiMindScore = parsed.mindScore;
+          aiEnvScore  = parsed.envScore;
+          aiAnalysisText = aiText.slice(aiText.indexOf('\n') + 1).trim();
+        } catch(e) { /* fallback to computed scores */ }
+      }
+
+      // Use AI scores if available, otherwise compute from inputs
+      const computedBody = Math.min(10, Math.round((pain * 0.5) + (symptoms.filter(s => !s.includes('None')).length * 0.5)));
+      const computedMind = Math.min(10, Math.round((stress * 0.6) + (selectedSleep === 'No sleep at all' ? 3 : selectedSleep === 'Barely slept' ? 2 : selectedSleep === 'Restless / broken' ? 1 : 0)));
+      const computedEnv  = Math.min(10, Math.round((workload * 0.5) + (stressors.filter(s => !s.includes('None')).length * 0.5)));
+
+      document.getElementById('bodyScore').textContent = (aiBodyScore !== null ? aiBodyScore : computedBody) + '/10';
+      document.getElementById('mindScore').textContent = (aiMindScore !== null ? aiMindScore : computedMind) + '/10';
+      document.getElementById('envScore').textContent  = (aiEnvScore  !== null ? aiEnvScore  : computedEnv)  + '/10';
+
+      if (aiAnalysisText) {
+        document.getElementById('aiResultBox').style.display = 'block';
+        document.getElementById('aiResultText').textContent  = aiAnalysisText;
+      }
+
+      document.getElementById('resultTips').innerHTML = fallback.tips.map(t =>
+        `<div class="tip"><div class="tip-icon">${t.icon}</div><div>${t.text}</div></div>`
+      ).join('');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 2500);
+  }
+
+  /* ── Reset ── */
+  function resetSurvey() {
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('stepsBar').style.display = 'flex';
+    document.getElementById('analyseBtn').disabled = false;
+    document.getElementById('analyseBtn').textContent = '✦ Analyse with AI';
+    document.getElementById('aiResultBox').style.display = 'none';
+    goTo('A');
+    document.getElementById('painLevel').value = 1; document.getElementById('painVal').textContent = 1;
+    document.getElementById('stressLevel').value = 3; document.getElementById('stressVal').textContent = 3;
+    document.getElementById('workloadLevel').value = 4; document.getElementById('workloadVal').textContent = 4;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected-amber','selected-purple','selected-rose','selected'));
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.sleep-opt').forEach(b => b.classList.remove('selected'));
+    document.getElementById('extraNotes').value = '';
+    selectedMood = 'Not specified'; selectedSleep = 'Not specified';
+    updateSlider('painLevel','painVal','amber');
+    updateSlider('stressLevel','stressVal','purple');
+    updateSlider('workloadLevel','workloadVal','rose');
+  }
+
+  // Init
+  updateSlider('painLevel','painVal','amber');
+  updateSlider('stressLevel','stressVal','purple');
+  updateSlider('workloadLevel','workloadVal','rose');
+
+  // ── NLM CONDITION AUTOCOMPLETE ──
+  let selectedConditions = [];
+
+  function addConditionTag(name) {
+    if (!name || selectedConditions.includes(name)) return;
+    selectedConditions.push(name);
+    renderConditionTags();
+    document.getElementById('condition').value = '';
+  }
+
+  function removeConditionTag(name) {
+    selectedConditions = selectedConditions.filter(c => c !== name);
+    renderConditionTags();
+  }
+
+  function renderConditionTags() {
+    const container = document.getElementById('conditionTags');
+    container.innerHTML = selectedConditions.map(name =>
+      `<span class="condition-tag">🏥 ${name} <button onclick="removeConditionTag('${name.replace(/'/g,"\\'")}')">×</button></span>`
+    ).join('');
+  }
+
+  // Wait for jQuery + autocomplete-lhc to load, then init
+  $(document).ready(function() {
+    var conditionAC = new Def.Autocompleter.Search('condition',
+      'https://clinicaltables.nlm.nih.gov/api/conditions/v3/search?df=primary_name',
+      {
+        tableFormat: true,
+        valueCols: [0],
+        colHeaders: ['Condition'],
+        maxSelect: '*',
+        matchListValue: false
+      }
+    );
+
+    Def.Autocompleter.Event.observeListSelections('condition', function() {
+      var selected = conditionAC.getSelectedItems();
+      if (selected && selected.length > 0) {
+        selected.forEach(function(item) {
+          addConditionTag(item[0] || item);
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>
